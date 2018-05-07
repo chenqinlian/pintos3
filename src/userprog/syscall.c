@@ -358,15 +358,15 @@ int sys_open(const char* file) {
   struct list* fd_list = &thread_current()->file_descriptors;
   if (list_empty(fd_list)) {
     // 0, 1, 2 are reserved for stdin, stdout, stderr
-    fd->id = 3;
+    fd->fd_number = 3;
   }
   else {
-    fd->id = (list_entry(list_back(fd_list), struct file_descriptor, elem)->id) + 1;
+    fd->fd_number = (list_entry(list_back(fd_list), struct file_descriptor, elem)->fd_number) + 1;
   }
   list_push_back(fd_list, &(fd->elem));
 
   lock_release (&filesys_lock);
-  return fd->id;
+  return fd->fd_number;
 }
 
 int sys_filesize(int fd) {
@@ -620,7 +620,7 @@ find_file_desc(struct thread *t, int fd)
         e != list_end(&t->file_descriptors); e = list_next(e))
     {
       struct file_descriptor *desc = list_entry(e, struct file_descriptor, elem);
-      if(desc->id == fd) {
+      if(desc->fd_number == fd) {
         return desc;
       }
     }
