@@ -23,7 +23,6 @@
 static void syscall_handler (struct intr_frame *);
 
 static void check_user (const uint8_t *uaddr);
-static int32_t get_user (const uint8_t *uaddr);
 static bool put_user (uint8_t *udst, uint8_t byte);
 static int memread_user (void *src, void *des, size_t bytes);
 
@@ -43,6 +42,18 @@ unsigned sys_tell(int fd);
 void sys_close(int fd);
 int sys_read(int fd, void *buffer, unsigned size);
 int sys_write(int fd, const void *buffer, unsigned size);
+
+//help function
+int sys_badmemory_access(void);
+
+
+//memory check function
+bool check_addr (const uint8_t *uaddr);
+bool check_buffer (void* buffer, unsigned size);
+static int get_user (const uint8_t *uaddr);
+
+
+
 
 struct lock filesys_lock;
 
@@ -65,17 +76,20 @@ static void fail_invalid_access(void) {
 static void
 syscall_handler (struct intr_frame *f)
 {
-  int syscall_number;
 
-  ASSERT( sizeof(syscall_number) == 4 ); // assuming x86
+    if(!check_addr(f->esp)){
+      thread_exit();
+    }
+  
+  
+    if(!check_buffer(f->esp,4)){
+      sys_badmemory_access();
+    }
+  
 
-  // The system call number is in the 32-bit word at the caller's stack pointer.
-  memread_user(f->esp, &syscall_number, sizeof(syscall_number));
+    int syscall_number = *(int *)(f->esp);
 
-  _DEBUG_PRINTF ("[DEBUG] system call, number = %d!\n", syscall_number);
 
-  // Dispatch w.r.t system call number
-  // SYS_*** constants are defined in syscall-nr.h
   switch (syscall_number) {
   case SYS_HALT: // 0
     {
@@ -456,32 +470,75 @@ int sys_write(int fd, const void *buffer, unsigned size) {
 
 /****************** Helper Functions on Memory Access ********************/
 
+bool
+check_addr(const uint8_t *uaddr){
+  if ((void*)uaddr > PHYS_BASE){
+    //thread_exit();
+    return false;
+  }
+
+  return true;
+}
+
+bool
+check_buffer (void* buffer, unsigned size){
+
+  unsigned i;
+  char* local_buffer = (char *) buffer;
+  for (i = 0; i < size; i++)
+    {
+      if(!check_addr((const void*) local_buffer) || get_user((const uint8_t *)local_buffer)<0){
+        return false;
+      }
+      local_buffer++;
+    }
+
+  return true;
+}
+
+static int
+get_user (const uint8_t *uaddr) {
+   int result;
+   asm ("movl $1f, %0; movzbl %1, %0; 1:"
+       : "=&a" (result) : "m" (*uaddr));
+   return result;
+}
+
+
+int sys_badmemory_access(void) {
+  sys_exit (-1);
+  NOT_REACHED();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/****************** Helper Functions on Memory Access ********************/
+
 static void
 check_user (const uint8_t *uaddr) {
   // check uaddr range or segfaults
   if(get_user (uaddr) == -1)
     fail_invalid_access();
-}
-
-/**
- * Reads a single 'byte' at user memory admemory at 'uaddr'.
- * 'uaddr' must be below PHYS_BASE.
- *
- * Returns the byte value if successful (extract the least significant byte),
- * or -1 in case of error (a segfault occurred or invalid uaddr)
- */
-static int32_t
-get_user (const uint8_t *uaddr) {
-  // check that a user pointer `uaddr` points below PHYS_BASE
-  if (! ((void*)uaddr < PHYS_BASE)) {
-    return -1;
-  }
-
-  // as suggested in the reference manual, see (3.1.5)
-  int result;
-  asm ("movl $1f, %0; movzbl %1, %0; 1:"
-      : "=&a" (result) : "m" (*uaddr));
-  return result;
 }
 
 /* Writes a single byte (content is 'byte') to user address 'udst'.
