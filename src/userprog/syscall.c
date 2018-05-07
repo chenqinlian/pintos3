@@ -505,21 +505,24 @@ int sys_read(int fd, void *buffer, unsigned size) {
         sys_exit(-1); // segfault
       }
     }
-    ret = size;
+    return size;
   }
   else {
     // read from file
-    struct file_descriptor* file_d = find_file_desc(thread_current(), fd);
 
-    if(file_d && file_d->file) {
-      ret = file_read(file_d->file, buffer, size);
+    struct file_descriptor* file_toread = NULL;
+
+    struct thread *t = thread_current();  
+    struct list *fd_list = &(t->file_descriptors);
+  
+    getfd(fd_list, &file_toread,fd); 
+    
+    if(file_toread && file_toread->file) {
+      return file_read(file_toread->file, buffer, size);
     }
-    else // no such file or can't open
-      ret = -1;
+    
+    return -1; 
   }
-
-
-  return ret;
 }
 
 int sys_write(int fd, void *buffer, unsigned size) {
