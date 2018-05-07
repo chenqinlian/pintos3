@@ -41,7 +41,7 @@ void sys_seek(int fd, unsigned position);
 unsigned sys_tell(int fd);
 void sys_close(int fd);
 int sys_read(int fd, void *buffer, unsigned size);
-int sys_write(int fd, const void *buffer, unsigned size);
+int sys_write(int fd, void *buffer, unsigned size);
 
 //help function
 int sys_badmemory_access(void);
@@ -510,17 +510,13 @@ int sys_read(int fd, void *buffer, unsigned size) {
   return ret;
 }
 
-int sys_write(int fd, const void *buffer, unsigned size) {
-  // memory validation : [buffer+0, buffer+size) should be all valid
-  check_user((const uint8_t*) buffer);
-  check_user((const uint8_t*) buffer + size - 1);
+int sys_write(int fd, void *buffer, unsigned size) {
 
-  lock_acquire (&filesys_lock);
   int ret;
 
   if(fd == 1) { // write to stdout
     putbuf(buffer, size);
-    ret = size;
+    return size;
   }
   else {
     // write into file
@@ -533,7 +529,6 @@ int sys_write(int fd, const void *buffer, unsigned size) {
       ret = -1;
   }
 
-  lock_release (&filesys_lock);
   return ret;
 }
 
