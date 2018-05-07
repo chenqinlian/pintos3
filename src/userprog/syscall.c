@@ -242,16 +242,26 @@ syscall_handler (struct intr_frame *f)
 
   case SYS_WRITE: // 9
     {
-      int fd, return_code;
-      const void *buffer;
-      unsigned size;
+      if(!check_buffer(f->esp+4, sizeof(int))){
+        sys_badmemory_access();
+      } 
+      if(!check_buffer(f->esp+8, sizeof(void*))){
+        sys_badmemory_access();
+      }
+      if(!check_buffer(f->esp+12, sizeof(unsigned))){
+        sys_badmemory_access();
+      }
 
-      memread_user(f->esp + 4, &fd, sizeof(fd));
-      memread_user(f->esp + 8, &buffer, sizeof(buffer));
-      memread_user(f->esp + 12, &size, sizeof(size));
+      int fd = *(int *)(f->esp+4);
+      void *buffer = *(void **)(f->esp+8);
+      unsigned size = *(unsigned *)(f->esp+12);
 
-      return_code = sys_write(fd, buffer, size);
-      f->eax = (uint32_t) return_code;
+      if( get_user((const uint8_t *)buffer)<0){
+        sys_badmemory_access();
+      }
+
+      int return_code = sys_write(fd, buffer, size);
+      f->eax = return_code;
       break;
     }
 
@@ -520,6 +530,8 @@ int sys_write(int fd, void *buffer, unsigned size) {
   }
   else {
     // write into file
+
+    /*
     struct file_descriptor* file_d = find_file_desc(thread_current(), fd);
 
     if(file_d && file_d->file) {
@@ -527,9 +539,24 @@ int sys_write(int fd, void *buffer, unsigned size) {
     }
     else // no such file or can't open
       ret = -1;
+    */
+
+    struct file_descriptor* file_towrite = NULL;
+
+    struct thread *t = thread_current();  
+    struct list *fd_list = &(t->file_descriptors);
+  
+    getfd(fd_list, &file_towrite,fd); 
+    
+    if(file_towrite && file_towrite->file) {
+      return file_write(file_towrite->file, buffer, size);
+    }
+    
+    return -1;
   }
 
-  return ret;
+
+
 }
 
 /****************** Helper Functions on Memory Access ********************/
