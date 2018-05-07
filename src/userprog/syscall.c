@@ -187,13 +187,21 @@ syscall_handler (struct intr_frame *f)
 
   case SYS_OPEN: // 6
     {
-      const char* filename;
-      int return_code;
+      //check whether pointer is below PHYS_BASE
+      if(!check_buffer(f->esp+4, sizeof(char*))){
+        sys_badmemory_access();
+      } 
 
-      memread_user(f->esp + 4, &filename, sizeof(filename));
+      char* filename = *(char **)(f->esp+4);
 
-      return_code = sys_open(filename);
+      //check valid memory access
+      if( get_user((const uint8_t *)filename)<0){
+        sys_badmemory_access();
+      }
+
+      int return_code = sys_open(filename);
       f->eax = return_code;
+      
       break;
     }
 
