@@ -34,7 +34,7 @@ pid_t sys_exec (const char *cmdline);
 int sys_wait (pid_t pid);
 
 bool sys_create(char *filename, unsigned filesize);
-bool sys_remove(const char* filename);
+bool sys_remove(char *filename);
 int sys_open(const char* file);
 int sys_filesize(int fd);
 void sys_seek(int fd, unsigned position);
@@ -324,15 +324,13 @@ bool sys_create(char *filename, unsigned filesize){
   return return_code;
 }
 
-bool sys_remove(const char* filename) {
-  bool return_code;
-  // memory validation
-  check_user((const uint8_t*) filename);
+bool sys_remove(char *filename) {
+  bool return_code = false;
 
-  lock_acquire (&filesys_lock);
   return_code = filesys_remove(filename);
-  lock_release (&filesys_lock);
+
   return return_code;
+
 }
 
 int sys_open(const char* file) {
