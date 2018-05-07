@@ -336,19 +336,10 @@ bool sys_remove(char *filename) {
 int sys_open(const char* filename) {
 
 
-  struct file* file_opened;
   struct file_descriptor* fd = palloc_get_page(0);
-  if (!fd) {
-    return -1;
-  }
 
-  lock_acquire (&filesys_lock);
-  file_opened = filesys_open(filename);
-  if (!file_opened) {
-    palloc_free_page (fd);
-    lock_release (&filesys_lock);
-    return -1;
-  }
+
+  struct file *file_opened = filesys_open(filename);
 
 
   fd->file = file_opened; //file save
@@ -363,7 +354,7 @@ int sys_open(const char* filename) {
   }
   list_push_back(fd_list, &(fd->elem));
 
-  lock_release (&filesys_lock);
+
   return fd->fd_number;
 }
 
