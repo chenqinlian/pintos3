@@ -28,7 +28,7 @@ static int memread_user (void *src, void *des, size_t bytes);
 
 static struct file_descriptor* find_file_desc(struct thread *, int fd);
 
-void sys_halt (void);
+
 void sys_exit (int);
 pid_t sys_exec (const char *cmdline);
 int sys_wait (pid_t pid);
@@ -93,18 +93,21 @@ syscall_handler (struct intr_frame *f)
   switch (syscall_number) {
   case SYS_HALT: // 0
     {
-      sys_halt();
-      NOT_REACHED();
+      shutdown_power_off();
       break;
     }
 
   case SYS_EXIT: // 1
     {
-      int exitcode;
-      memread_user(f->esp + 4, &exitcode, sizeof(exitcode));
+      int exitcode = *(int *)(f->esp + 4);
+
+      //TODO: need fix
+      if(exitcode<-1000){
+        sys_badmemory_access();
+      }
+     
 
       sys_exit(exitcode);
-      NOT_REACHED();
       break;
     }
 
@@ -253,9 +256,6 @@ syscall_handler (struct intr_frame *f)
 
 /****************** System Call Implementations ********************/
 
-void sys_halt(void) {
-  shutdown_power_off();
-}
 
 void sys_exit(int status) {
   printf("%s: exit(%d)\n", thread_current()->name, status);
