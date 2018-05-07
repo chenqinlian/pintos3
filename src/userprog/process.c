@@ -108,8 +108,8 @@ start_process (void *pcb_)
 
     t->pcb = pcb;
 
-    printf("load success\n");
-    printf("..pcb->waiting:%d\n",pcb->waiting);
+    //printf("load success\n");
+    //printf("..pcb->waiting:%d\n",pcb->waiting);
 
     sema_up(&pcb->sema_initialization);
     palloc_free_page (file_name);
@@ -148,7 +148,7 @@ process_wait (tid_t child_tid)
 
   getchild(&(thread_current ()->child_list), &child_toexit, &list_elem_toremove, child_tid);
 
-  printf("ischildnull?%d\n",child_toexit==NULL);  
+  //printf("ischildnull?%d\n",child_toexit==NULL);  
 
   //printf("childiswaiting?%d\n"); 
 
@@ -165,14 +165,14 @@ process_wait (tid_t child_tid)
 
   else {
     
-    printf("processing...\n");
+    //printf("processing...\n");
 
     child_toexit->waiting = true;
-    printf("ischildwaiting?%d\n",child_toexit->waiting); 
+    //printf("ischildwaiting?%d\n",child_toexit->waiting); 
 
     // TODO: zombie process
     if (! child_toexit->exited) {
-      //sema_down(& (child_toexit->sema_wait));
+      sema_down(& (child_toexit->sema_wait));
     }
     else{
       
