@@ -231,12 +231,11 @@ syscall_handler (struct intr_frame *f)
       void *buffer = *(void **)(f->esp+8);
       unsigned size = *(unsigned *)(f->esp+12);
 
-      if( get_user((const uint8_t *)buffer)<0){
-        sys_badmemory_access();
-      }
-      //from buffer to buffer+size
-      if(!check_buffer(f->esp+8, size)){
-        sys_badmemory_access();
+      //TODO:read-bad-ptr
+      for(int i=0; i<size; i++){
+        if( get_user((const uint8_t *)(buffer+i))<0){
+          sys_badmemory_access();
+        }
       }
 
 
