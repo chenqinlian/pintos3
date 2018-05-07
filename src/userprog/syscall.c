@@ -27,7 +27,7 @@ static int32_t get_user (const uint8_t *uaddr);
 static bool put_user (uint8_t *udst, uint8_t byte);
 static int memread_user (void *src, void *des, size_t bytes);
 
-static struct file_desc* find_file_desc(struct thread *, int fd);
+static struct file_descriptor* find_file_desc(struct thread *, int fd);
 
 void sys_halt (void);
 void sys_exit (int);
@@ -309,7 +309,7 @@ int sys_open(const char* file) {
   check_user((const uint8_t*) file);
 
   struct file* file_opened;
-  struct file_desc* fd = palloc_get_page(0);
+  struct file_descriptor* fd = palloc_get_page(0);
   if (!fd) {
     return -1;
   }
@@ -330,7 +330,7 @@ int sys_open(const char* file) {
     fd->id = 3;
   }
   else {
-    fd->id = (list_entry(list_back(fd_list), struct file_desc, elem)->id) + 1;
+    fd->id = (list_entry(list_back(fd_list), struct file_descriptor, elem)->id) + 1;
   }
   list_push_back(fd_list, &(fd->elem));
 
@@ -339,7 +339,7 @@ int sys_open(const char* file) {
 }
 
 int sys_filesize(int fd) {
-  struct file_desc* file_d;
+  struct file_descriptor* file_d;
 
   lock_acquire (&filesys_lock);
   file_d = find_file_desc(thread_current(), fd);
@@ -356,7 +356,7 @@ int sys_filesize(int fd) {
 
 void sys_seek(int fd, unsigned position) {
   lock_acquire (&filesys_lock);
-  struct file_desc* file_d = find_file_desc(thread_current(), fd);
+  struct file_descriptor* file_d = find_file_desc(thread_current(), fd);
 
   if(file_d && file_d->file) {
     file_seek(file_d->file, position);
@@ -369,7 +369,7 @@ void sys_seek(int fd, unsigned position) {
 
 unsigned sys_tell(int fd) {
   lock_acquire (&filesys_lock);
-  struct file_desc* file_d = find_file_desc(thread_current(), fd);
+  struct file_descriptor* file_d = find_file_desc(thread_current(), fd);
 
   unsigned ret;
   if(file_d && file_d->file) {
@@ -384,7 +384,7 @@ unsigned sys_tell(int fd) {
 
 void sys_close(int fd) {
   lock_acquire (&filesys_lock);
-  struct file_desc* file_d = find_file_desc(thread_current(), fd);
+  struct file_descriptor* file_d = find_file_desc(thread_current(), fd);
 
   if(file_d && file_d->file) {
     file_close(file_d->file);
@@ -414,7 +414,7 @@ int sys_read(int fd, void *buffer, unsigned size) {
   }
   else {
     // read from file
-    struct file_desc* file_d = find_file_desc(thread_current(), fd);
+    struct file_descriptor* file_d = find_file_desc(thread_current(), fd);
 
     if(file_d && file_d->file) {
       ret = file_read(file_d->file, buffer, size);
@@ -441,7 +441,7 @@ int sys_write(int fd, const void *buffer, unsigned size) {
   }
   else {
     // write into file
-    struct file_desc* file_d = find_file_desc(thread_current(), fd);
+    struct file_descriptor* file_d = find_file_desc(thread_current(), fd);
 
     if(file_d && file_d->file) {
       ret = file_write(file_d->file, buffer, size);
@@ -530,7 +530,7 @@ memread_user (void *src, void *dst, size_t bytes)
 
 /****************** Helper Functions on File Access ********************/
 
-static struct file_desc*
+static struct file_descriptor*
 find_file_desc(struct thread *t, int fd)
 {
   ASSERT (t != NULL);
@@ -545,7 +545,7 @@ find_file_desc(struct thread *t, int fd)
     for(e = list_begin(&t->file_descriptors);
         e != list_end(&t->file_descriptors); e = list_next(e))
     {
-      struct file_desc *desc = list_entry(e, struct file_desc, elem);
+      struct file_descriptor *desc = list_entry(e, struct file_descriptor, elem);
       if(desc->id == fd) {
         return desc;
       }
