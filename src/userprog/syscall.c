@@ -45,7 +45,7 @@ int sys_write(int fd, const void *buffer, unsigned size);
 
 //help function
 int sys_badmemory_access(void);
-
+void getfd(struct list *fd_list, struct file_descriptor **mrright, int fd);
 
 //memory check function
 bool check_addr (const uint8_t *uaddr);
@@ -271,10 +271,21 @@ syscall_handler (struct intr_frame *f)
 
   case SYS_CLOSE: // 12
     {
-      int fd;
-      memread_user(f->esp + 4, &fd, sizeof(fd));
+      if(!check_buffer(f->esp+4, sizeof(int))){
+        sys_badmemory_access();
+      } 
 
-      sys_close(fd);
+      int fdnumber = *(int *)(f->esp+4);
+
+      //check valid memory access
+      if( get_user((const uint8_t *)(f->esp+4))<0){
+        sys_badmemory_access();
+      }
+
+      //printf("sys_close,fd_number%d\n", fdnumber);
+      
+      sys_close(fdnumber);
+
       break;
     }
 
@@ -425,15 +436,43 @@ unsigned sys_tell(int fd) {
 }
 
 void sys_close(int fd) {
-  lock_acquire (&filesys_lock);
-  struct file_descriptor* file_d = find_file_desc(thread_current(), fd);
+  struct file_descriptor* file_toclose = NULL;
 
-  if(file_d && file_d->file) {
-    file_close(file_d->file);
-    list_remove(&(file_d->elem));
-    palloc_free_page(file_d);
+  struct thread *t = thread_current();  
+  struct list *fd_list = &(t->file_descriptors);
+  
+  getfd(fd_list, &file_toclose,fd);  
+
+
+  if(!list_empty(fd_list) && file_toclose && file_toclose->file) {
+    file_close(file_toclose->file);
+    list_remove(&(file_toclose->elem));
   }
-  lock_release (&filesys_lock);
+
+  return;
+}
+
+void getfd(struct list *fd_list, struct file_descriptor **mrright, int fd)
+{
+  struct list_elem *iter = NULL;
+
+  if(list_empty(fd_list)){
+    return;
+  }
+
+  //printf("..getfd,list not empty\n");
+  for(iter = list_begin(fd_list);iter != list_end(fd_list); iter = list_next(fd_list))
+    {
+      struct file_descriptor *desc = list_entry(iter, struct file_descriptor, elem);
+      if(desc->fd_number == fd) {
+
+        *mrright = desc;
+        return;
+      }
+    }
+
+
+  return;
 }
 
 int sys_read(int fd, void *buffer, unsigned size) {
