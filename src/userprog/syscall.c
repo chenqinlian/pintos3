@@ -361,17 +361,22 @@ int sys_open(const char* filename) {
   if (list_empty(fd_list)) {
     
     fd->fd_number = FD_BASE;
+    list_push_back(fd_list, &(fd->elem));
+    return FD_BASE;
+ 
   }
   else {
-    struct list_elem *elem = NULL;
-    struct file_descriptor* fdlast = list_entry(list_back(fd_list), struct file_descriptor, elem);
+    //form fd to be put in
+    struct list_elem *lastelem = list_back(fd_list);
+    struct file_descriptor* fdlast = list_entry(lastelem, struct file_descriptor, elem);
     fd->fd_number = fdlast->fd_number + 1;
+    list_push_back(fd_list, &(fd->elem));
+
+    //delete old elem
+    list_remove(lastelem);// bug may exist, need check
 
   }
-
-  list_push_back(fd_list, &(fd->elem));
-
-
+  
   return fd->fd_number;
 }
 
