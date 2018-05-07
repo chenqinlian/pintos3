@@ -105,7 +105,12 @@ start_process (void *pcb_)
     /* If load failed, quit. */
     struct thread *t = thread_current();
     pcb->pid = success ? (pid_t)(t->tid) : PID_ERROR;
+
     t->pcb = pcb;
+
+    printf("load success\n");
+    printf("..pcb->waiting:%d\n",pcb->waiting);
+
     sema_up(&pcb->sema_initialization);
     palloc_free_page (file_name);
 
@@ -136,20 +141,20 @@ start_process (void *pcb_)
 int
 process_wait (tid_t child_tid) 
 {
-  /*  
-  int dummy = 0, i;
-  for(i=0; i<1 * 10000 * 10000; ++i) dummy += i;
-  ASSERT(dummy != 0);
 
-  return -1;  
-   */ 
-
-
+  
   struct process_control_block *child_toexit = NULL;
   struct list_elem *list_elem_toremove = NULL;
 
   getchild(&(thread_current ()->child_list), &child_toexit, &list_elem_toremove, child_tid);
 
+  printf("ischildnull?%d\n",child_toexit==NULL);  
+
+  //printf("childiswaiting?%d\n"); 
+
+  
+
+  
   if (child_toexit == NULL|| list_elem_toremove==NULL) {
     return -1;
   }
@@ -157,12 +162,17 @@ process_wait (tid_t child_tid)
   if (child_toexit->waiting) {
     return -1; 
   }
+
   else {
+    
+    printf("processing...\n");
+
     child_toexit->waiting = true;
+    printf("ischildwaiting?%d\n",child_toexit->waiting); 
 
     // TODO: zombie process
     if (! child_toexit->exited) {
-      sema_down(& (child_toexit->sema_wait));
+      //sema_down(& (child_toexit->sema_wait));
     }
     else{
       
@@ -171,7 +181,8 @@ process_wait (tid_t child_tid)
   
     }
   }
-  
+    
+
   return child_toexit->exitcode;
 
 }
