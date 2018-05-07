@@ -217,15 +217,25 @@ syscall_handler (struct intr_frame *f)
 
   case SYS_READ: // 8
     {
-      int fd, return_code;
-      void *buffer;
-      unsigned size;
+      if(!check_buffer(f->esp+4, sizeof(int))){
+        sys_badmemory_access();
+      } 
+      if(!check_buffer(f->esp+8, sizeof(void*))){
+        sys_badmemory_access();
+      }
+      if(!check_buffer(f->esp+12, sizeof(unsigned))){
+        sys_badmemory_access();
+      }
 
-      memread_user(f->esp + 4, &fd, sizeof(fd));
-      memread_user(f->esp + 8, &buffer, sizeof(buffer));
-      memread_user(f->esp + 12, &size, sizeof(size));
+      int fd = *(int *)(f->esp+4);
+      void *buffer = *(void **)(f->esp+8);
+      unsigned size = *(unsigned *)(f->esp+12);
 
-      return_code = sys_read(fd, buffer, size);
+      if( get_user((const uint8_t *)buffer)<0){
+        sys_badmemory_access();
+      }
+
+      int return_code = sys_read(fd, buffer, size);
       f->eax = (uint32_t) return_code;
       break;
     }
