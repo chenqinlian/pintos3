@@ -35,7 +35,7 @@ int sys_wait (pid_t pid);
 
 bool sys_create(char *filename, unsigned filesize);
 bool sys_remove(char *filename);
-int sys_open(const char* file);
+int sys_open(const char* filename);
 int sys_filesize(int fd);
 void sys_seek(int fd, unsigned position);
 unsigned sys_tell(int fd);
@@ -333,9 +333,8 @@ bool sys_remove(char *filename) {
 
 }
 
-int sys_open(const char* file) {
-  // memory validation
-  check_user((const uint8_t*) file);
+int sys_open(const char* filename) {
+
 
   struct file* file_opened;
   struct file_descriptor* fd = palloc_get_page(0);
@@ -344,12 +343,13 @@ int sys_open(const char* file) {
   }
 
   lock_acquire (&filesys_lock);
-  file_opened = filesys_open(file);
+  file_opened = filesys_open(filename);
   if (!file_opened) {
     palloc_free_page (fd);
     lock_release (&filesys_lock);
     return -1;
   }
+
 
   fd->file = file_opened; //file save
 
