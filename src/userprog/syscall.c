@@ -524,22 +524,13 @@ int sys_write(int fd, void *buffer, unsigned size) {
 
   int ret;
 
-  if(fd == 1) { // write to stdout
+  if(fd == 1) {
+    // output to screem
     putbuf(buffer, size);
     return size;
   }
   else {
-    // write into file
-
-    /*
-    struct file_descriptor* file_d = find_file_desc(thread_current(), fd);
-
-    if(file_d && file_d->file) {
-      ret = file_write(file_d->file, buffer, size);
-    }
-    else // no such file or can't open
-      ret = -1;
-    */
+    // output to file
 
     struct file_descriptor* file_towrite = NULL;
 
