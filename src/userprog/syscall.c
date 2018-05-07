@@ -289,16 +289,9 @@ void sys_exit(int status) {
 }
 
 pid_t sys_exec(const char *cmdline) {
-  _DEBUG_PRINTF ("[DEBUG] Exec : %s\n", cmdline);
 
-  // cmdline is an address to the character buffer, on user memory
-  // so a validation check is required
-  check_user((const uint8_t*) cmdline);
-
-  lock_acquire (&filesys_lock); // load() uses filesystem
-  pid_t pid = process_execute(cmdline);
-  lock_release (&filesys_lock);
-  return pid;
+  tid_t child_tid = process_execute(cmdline);
+  return (pid_t)child_tid;
 }
 
 int sys_wait(pid_t pid) {
