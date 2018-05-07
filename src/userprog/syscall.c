@@ -336,22 +336,31 @@ bool sys_remove(char *filename) {
 int sys_open(const char* filename) {
 
 
+
+  struct file *file_toopen = filesys_open(filename);
+
+  if(file_toopen==NULL){
+    return -1;
+  }
+
   struct file_descriptor* fd = palloc_get_page(0);
+  fd->file = file_toopen; 
 
+  struct thread *t = thread_current();  
+  struct list *fd_list = &(t->file_descriptors);
 
-  struct file *file_opened = filesys_open(filename);
-
-
-  fd->file = file_opened; //file save
-
-  struct list* fd_list = &thread_current()->file_descriptors;
+  //TODO: Rewrite
   if (list_empty(fd_list)) {
-    // 0, 1, 2 are reserved for stdin, stdout, stderr
-    fd->fd_number = 3;
+    
+    fd->fd_number = FD_BASE;
   }
   else {
-    fd->fd_number = (list_entry(list_back(fd_list), struct file_descriptor, elem)->fd_number) + 1;
+    struct list_elem *elem = NULL;
+    struct file_descriptor* fdlast = list_entry(list_back(fd_list), struct file_descriptor, elem);
+    fd->fd_number = fdlast->fd_number + 1;
+
   }
+
   list_push_back(fd_list, &(fd->elem));
 
 
