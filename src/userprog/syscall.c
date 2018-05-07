@@ -33,7 +33,7 @@ void sys_exit (int);
 pid_t sys_exec (const char *cmdline);
 int sys_wait (pid_t pid);
 
-bool sys_create(const char* filename, unsigned initial_size);
+bool sys_create(char *filename, unsigned filesize);
 bool sys_remove(const char* filename);
 int sys_open(const char* file);
 int sys_filesize(int fd);
@@ -148,14 +148,27 @@ syscall_handler (struct intr_frame *f)
 
   case SYS_CREATE: // 4
     {
-      const char* filename;
-      unsigned initial_size;
-      bool return_code;
+      //check whether pointer is below PHYS_BASE
+      if(!check_buffer(f->esp+4, sizeof(char*))){
+        sys_badmemory_access();
+      } 
 
-      memread_user(f->esp + 4, &filename, sizeof(filename));
-      memread_user(f->esp + 8, &initial_size, sizeof(initial_size));
+      if(!check_buffer(f->esp+8, sizeof(unsigned))){
+        sys_badmemory_access();
+      } 
 
-      return_code = sys_create(filename, initial_size);
+      char* filename = *(char **)(f->esp+4);
+      unsigned filesize = *(unsigned **)(f->esp+8);
+      
+      //printf("filename:%s\n",filename);
+      //printf("filesize:%d\n",filesize);
+
+      //check valid memory access
+      if( get_user((const uint8_t *)filename)<0){
+        sys_badmemory_access();
+      }
+
+      int return_code = sys_create(filename, filesize);
       f->eax = return_code;
       break;
     }
@@ -303,15 +316,11 @@ int sys_wait(pid_t pid) {
   return process_wait(pid);
 }
 
-bool sys_create(const char* filename, unsigned initial_size) {
-  bool return_code;
+bool sys_create(char *filename, unsigned filesize){
+  bool return_code = false;
 
-  // memory validation
-  check_user((const uint8_t*) filename);
+  return_code = filesys_create(filename, filesize);
 
-  lock_acquire (&filesys_lock);
-  return_code = filesys_create(filename, initial_size);
-  lock_release (&filesys_lock);
   return return_code;
 }
 
