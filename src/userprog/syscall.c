@@ -234,6 +234,11 @@ syscall_handler (struct intr_frame *f)
       if( get_user((const uint8_t *)buffer)<0){
         sys_badmemory_access();
       }
+      //from buffer to buffer+size
+      if(!check_buffer(f->esp+8, size)){
+        sys_badmemory_access();
+      }
+
 
       int return_code = sys_read(fd, buffer, size);
       f->eax = (uint32_t) return_code;
@@ -488,18 +493,15 @@ void getfd(struct list *fd_list, struct file_descriptor **mrright, int fd)
 }
 
 int sys_read(int fd, void *buffer, unsigned size) {
-  // memory validation : [buffer+0, buffer+size) should be all valid
-  check_user((const uint8_t*) buffer);
-  check_user((const uint8_t*) buffer + size - 1);
 
-  lock_acquire (&filesys_lock);
+
   int ret;
 
   if(fd == 0) { // stdin
     unsigned i;
     for(i = 0; i < size; ++i) {
       if(! put_user(buffer + i, input_getc()) ) {
-        lock_release (&filesys_lock);
+
         sys_exit(-1); // segfault
       }
     }
@@ -516,7 +518,7 @@ int sys_read(int fd, void *buffer, unsigned size) {
       ret = -1;
   }
 
-  lock_release (&filesys_lock);
+
   return ret;
 }
 
