@@ -307,18 +307,11 @@ syscall_handler (struct intr_frame *f)
 void sys_exit(int status) {
   printf("%s: exit(%d)\n", thread_current()->name, status);
 
-  // The process exits.
-  // wake up the parent process (if it was sleeping) using semaphore,
-  // and pass the return code.
   struct process_control_block *pcb = thread_current()->pcb;
   if(pcb != NULL) {
     pcb->exited = true;
     pcb->exitcode = status;
     sema_up (&pcb->sema_wait);
-  }
-  else {
-    // pcb == NULL probably means that previously
-    // page allocation has failed in process_execute()
   }
 
   thread_exit();
@@ -368,7 +361,6 @@ int sys_open(const char* filename) {
   struct thread *t = thread_current();  
   struct list *fd_list = &(t->file_descriptors);
 
-  //TODO: Rewrite
   if (list_empty(fd_list)) {
     
     fd->fd_number = FD_BASE;
