@@ -411,6 +411,22 @@ int sys_open(const char* filename) {
 }
 
 int sys_filesize(int fd) {
+
+  struct file_descriptor* file_tosize = NULL;
+
+  struct thread *t = thread_current();  
+  struct list *fd_list = &(t->file_descriptors);
+  
+  getfd(fd_list, &file_tosize,fd);  
+
+  if(!list_empty(fd_list) && file_tosize && file_tosize->file) {
+    return file_length(file_tosize->file);
+  }
+
+  return -1;
+
+
+  /*
   struct file_descriptor* file_d;
 
   lock_acquire (&filesys_lock);
@@ -424,9 +440,27 @@ int sys_filesize(int fd) {
   int ret = file_length(file_d->file);
   lock_release (&filesys_lock);
   return ret;
+  */
 }
 
 void sys_seek(int fd, unsigned position) {
+  
+  struct file_descriptor* file_toseek = NULL;
+
+  struct thread *t = thread_current();  
+  struct list *fd_list = &(t->file_descriptors);
+  
+  getfd(fd_list, &file_toseek,fd);  
+
+
+  if(!list_empty(fd_list) && file_toseek && file_toseek->file) {
+    file_seek(file_toseek->file,position);
+  }
+
+  return;
+
+
+  /*
   lock_acquire (&filesys_lock);
   struct file_descriptor* file_d = find_file_desc(thread_current(), fd);
 
@@ -437,9 +471,26 @@ void sys_seek(int fd, unsigned position) {
     return; // TODO need sys_exit?
 
   lock_release (&filesys_lock);
+
+  */
 }
 
 unsigned sys_tell(int fd) {
+
+  struct file_descriptor* file_totell = NULL;
+
+  struct thread *t = thread_current();  
+  struct list *fd_list = &(t->file_descriptors);
+  
+  getfd(fd_list, &file_totell,fd);  
+
+  if(!list_empty(fd_list) && file_totell && file_totell->file) {
+    return file_tell(file_totell->file);
+  }
+
+  return -1;
+
+  /*
   lock_acquire (&filesys_lock);
   struct file_descriptor* file_d = find_file_desc(thread_current(), fd);
 
@@ -452,6 +503,8 @@ unsigned sys_tell(int fd) {
 
   lock_release (&filesys_lock);
   return ret;
+
+  */
 }
 
 void sys_close(int fd) {
