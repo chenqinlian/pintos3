@@ -210,10 +210,9 @@ syscall_handler (struct intr_frame *f)
 
   case SYS_FILESIZE: // 7
     {
-      int fd, return_code;
-      memread_user(f->esp + 4, &fd, sizeof(fd));
+      int fdnumber = *(int *)(f->esp+4);
 
-      return_code = sys_filesize(fd);
+      int return_code = sys_filesize(fdnumber);
       f->eax = return_code;
       break;
     }
@@ -274,24 +273,19 @@ syscall_handler (struct intr_frame *f)
 
   case SYS_SEEK: // 10
     {
-      int fd;
-      unsigned position;
+      int fdnumber = *(int *)(f->esp+4);
+      unsigned position = *(unsigned *)(f->esp+8);
 
-      memread_user(f->esp + 4, &fd, sizeof(fd));
-      memread_user(f->esp + 8, &position, sizeof(position));
 
-      sys_seek(fd, position);
+      sys_seek(fdnumber, position);
       break;
     }
 
   case SYS_TELL: // 11
     {
-      int fd;
-      unsigned return_code;
+      int fdnumber = *(int *)(f->esp+4);
 
-      memread_user(f->esp + 4, &fd, sizeof(fd));
-
-      return_code = sys_tell(fd);
+      unsigned return_code = sys_tell(fdnumber);
       f->eax = (uint32_t) return_code;
       break;
     }
