@@ -175,12 +175,15 @@ syscall_handler (struct intr_frame *f)
 
   case SYS_REMOVE: // 5
     {
-      const char* filename;
-      bool return_code;
 
-      memread_user(f->esp + 4, &filename, sizeof(filename));
+      char* filename = *(char **)(f->esp+4);
+      
+      if(!check_buffer(f->esp+4, sizeof(char*))){
+        sys_badmemory_access();
+      } 
 
-      return_code = sys_remove(filename);
+
+      bool return_code = sys_remove(filename);
       f->eax = return_code;
       break;
     }
