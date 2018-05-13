@@ -220,6 +220,12 @@ process_exit (void)
   struct thread *cur = thread_current ();
   uint32_t *pd;
 
+
+  if(cur->executing_file){
+    file_close(cur->executing_file);
+  }
+
+
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
@@ -445,13 +451,17 @@ load (const char *file_name_, void (**eip) (void), void **esp)
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
 
+  /* Deny writing */
+  file_deny_write (file);
+  thread_current()->executing_file = file;
+
   success = true;
 
  done:
   /* free the file_name page for make no leak. We always arrive here. */
   palloc_free_page (file_name);
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
+  //file_close (file);
   return success;
 }
 
