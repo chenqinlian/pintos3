@@ -14,21 +14,12 @@
 #include "lib/kernel/list.h"
 
 
-#ifdef DEBUG
-#define _DEBUG_PRINTF(...) printf(__VA_ARGS__)
-#else
-#define _DEBUG_PRINTF(...) /* do nothing */
-#endif
 
 static void syscall_handler (struct intr_frame *);
 
-static void check_user (const uint8_t *uaddr);
-static bool put_user (uint8_t *udst, uint8_t byte);
-static int memread_user (void *src, void *des, size_t bytes);
-
-static struct file_descriptor* find_file_desc(struct thread *, int fd);
 
 
+//funcitons in system calls
 void sys_exit (int);
 pid_t sys_exec (const char *cmdline);
 int sys_wait (pid_t pid);
@@ -91,13 +82,13 @@ syscall_handler (struct intr_frame *f)
 
 
   switch (syscall_number) {
-  case SYS_HALT: // 0
+  case SYS_HALT: 
     {
       shutdown_power_off();
       break;
     }
 
-  case SYS_EXIT: // 1
+  case SYS_EXIT: 
     {
       int exitcode = *(int *)(f->esp + 4);
 
@@ -111,7 +102,7 @@ syscall_handler (struct intr_frame *f)
       break;
     }
 
-  case SYS_EXEC: // 2
+  case SYS_EXEC: 
     {
       void* cmdline = *(char **)(f->esp+4);
 
@@ -132,7 +123,7 @@ syscall_handler (struct intr_frame *f)
       break;
     }
 
-  case SYS_WAIT: // 3
+  case SYS_WAIT: 
     {
       if(!check_buffer(f->esp+4, sizeof(pid_t))){
         sys_badmemory_access();
@@ -146,7 +137,7 @@ syscall_handler (struct intr_frame *f)
       break;
     }
 
-  case SYS_CREATE: // 4
+  case SYS_CREATE: 
     {
       //check whether pointer is below PHYS_BASE
       if(!check_buffer(f->esp+4, sizeof(char*))){
@@ -173,7 +164,7 @@ syscall_handler (struct intr_frame *f)
       break;
     }
 
-  case SYS_REMOVE: // 5
+  case SYS_REMOVE:
     {
 
       char* filename = *(char **)(f->esp+4);
@@ -188,7 +179,7 @@ syscall_handler (struct intr_frame *f)
       break;
     }
 
-  case SYS_OPEN: // 6
+  case SYS_OPEN:
     {
       //check whether pointer is below PHYS_BASE
       if(!check_buffer(f->esp+4, sizeof(char*))){
@@ -208,7 +199,7 @@ syscall_handler (struct intr_frame *f)
       break;
     }
 
-  case SYS_FILESIZE: // 7
+  case SYS_FILESIZE: 
     {
       int fdnumber = *(int *)(f->esp+4);
 
@@ -217,7 +208,7 @@ syscall_handler (struct intr_frame *f)
       break;
     }
 
-  case SYS_READ: // 8
+  case SYS_READ: 
     {
       if(!check_buffer(f->esp+4, sizeof(int))){
         sys_badmemory_access();
@@ -246,7 +237,7 @@ syscall_handler (struct intr_frame *f)
       break;
     }
 
-  case SYS_WRITE: // 9
+  case SYS_WRITE: 
     {
       if(!check_buffer(f->esp+4, sizeof(int))){
         sys_badmemory_access();
@@ -271,7 +262,7 @@ syscall_handler (struct intr_frame *f)
       break;
     }
 
-  case SYS_SEEK: // 10
+  case SYS_SEEK: 
     {
       int fdnumber = *(int *)(f->esp+4);
       unsigned position = *(unsigned *)(f->esp+8);
@@ -281,7 +272,7 @@ syscall_handler (struct intr_frame *f)
       break;
     }
 
-  case SYS_TELL: // 11
+  case SYS_TELL: 
     {
       int fdnumber = *(int *)(f->esp+4);
 
@@ -290,7 +281,7 @@ syscall_handler (struct intr_frame *f)
       break;
     }
 
-  case SYS_CLOSE: // 12
+  case SYS_CLOSE: 
     {
       if(!check_buffer(f->esp+4, sizeof(int))){
         sys_badmemory_access();
@@ -601,102 +592,3 @@ int sys_badmemory_access(void) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/****************** Helper Functions on Memory Access ********************/
-
-static void
-check_user (const uint8_t *uaddr) {
-  // check uaddr range or segfaults
-  if(get_user (uaddr) == -1)
-    fail_invalid_access();
-}
-
-/* Writes a single byte (content is 'byte') to user address 'udst'.
- * 'udst' must be below PHYS_BASE.
- *
- * Returns true if successful, false if a segfault occurred.
- */
-static bool
-put_user (uint8_t *udst, uint8_t byte) {
-  // check that a user pointer `udst` points below PHYS_BASE
-  if (! ((void*)udst < PHYS_BASE)) {
-    return false;
-  }
-
-  int error_code;
-
-  // as suggested in the reference manual, see (3.1.5)
-  asm ("movl $1f, %0; movb %b2, %1; 1:"
-      : "=&a" (error_code), "=m" (*udst) : "q" (byte));
-  return error_code != -1;
-}
-
-
-/**
- * Reads a consecutive `bytes` bytes of user memory with the
- * starting address `src` (uaddr), and writes to dst.
- *
- * Returns the number of bytes read.
- * In case of invalid memory access, exit() is called and consequently
- * the process is terminated with return code -1.
- */
-static int
-memread_user (void *src, void *dst, size_t bytes)
-{
-  int32_t value;
-  size_t i;
-  for(i=0; i<bytes; i++) {
-    value = get_user(src + i);
-    if(value == -1) // segfault or invalid memory access
-      fail_invalid_access();
-
-    *(char*)(dst + i) = value & 0xff;
-  }
-  return (int)bytes;
-}
-
-/****************** Helper Functions on File Access ********************/
-
-static struct file_descriptor*
-find_file_desc(struct thread *t, int fd)
-{
-  ASSERT (t != NULL);
-
-  if (fd < 3) {
-    return NULL;
-  }
-
-  struct list_elem *e;
-
-  if (! list_empty(&t->file_descriptors)) {
-    for(e = list_begin(&t->file_descriptors);
-        e != list_end(&t->file_descriptors); e = list_next(e))
-    {
-      struct file_descriptor *desc = list_entry(e, struct file_descriptor, elem);
-      if(desc->fd_number == fd) {
-        return desc;
-      }
-    }
-  }
-
-  return NULL; // not found
-}
