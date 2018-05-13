@@ -341,17 +341,23 @@ int sys_wait(pid_t pid) {
 }
 
 bool sys_create(char *filename, unsigned filesize){
+
+  lock_acquire(&filesys_lock);
   bool return_code = false;
 
   return_code = filesys_create(filename, filesize);
+  lock_release(&filesys_lock);
 
   return return_code;
 }
 
 bool sys_remove(char *filename) {
+
+  lock_acquire(&filesys_lock);
   bool return_code = false;
 
   return_code = filesys_remove(filename);
+  lock_release(&filesys_lock);
 
   return return_code;
 
@@ -359,11 +365,13 @@ bool sys_remove(char *filename) {
 
 int sys_open(const char* filename) {
 
-
+  lock_acquire(&filesys_lock);
 
   struct file *file_toopen = filesys_open(filename);
 
   if(file_toopen==NULL){
+
+  lock_release(&filesys_lock);
     return -1;
   }
 
@@ -377,6 +385,7 @@ int sys_open(const char* filename) {
     
     fd->fd_number = FD_BASE;
     list_push_back(fd_list, &(fd->elem));
+  lock_release(&filesys_lock);
     return FD_BASE;
  
   }
@@ -391,12 +400,15 @@ int sys_open(const char* filename) {
     list_remove(lastelem);// bug may exist, need check
 
   }
+
+  lock_release(&filesys_lock);
   
   return fd->fd_number;
 }
 
 int sys_filesize(int fd) {
 
+  lock_acquire(&filesys_lock);
   struct file_descriptor* file_tosize = NULL;
 
   struct thread *t = thread_current();  
@@ -408,11 +420,14 @@ int sys_filesize(int fd) {
     return file_length(file_tosize->file);
   }
 
+  lock_release(&filesys_lock);
   return -1;
 
 }
 
 void sys_seek(int fd, unsigned position) {
+
+  lock_acquire(&filesys_lock);
   
   struct file_descriptor* file_toseek = NULL;
 
@@ -426,11 +441,15 @@ void sys_seek(int fd, unsigned position) {
     file_seek(file_toseek->file,position);
   }
 
+  lock_release(&filesys_lock);
+
   return;
 
 }
 
 unsigned sys_tell(int fd) {
+
+  lock_acquire(&filesys_lock);
 
   struct file_descriptor* file_totell = NULL;
 
@@ -443,11 +462,16 @@ unsigned sys_tell(int fd) {
     return file_tell(file_totell->file);
   }
 
+  lock_release(&filesys_lock);
+
   return -1;
 
 }
 
 void sys_close(int fd) {
+
+  lock_acquire(&filesys_lock);
+
   struct file_descriptor* file_toclose = NULL;
 
   struct thread *t = thread_current();  
@@ -461,11 +485,16 @@ void sys_close(int fd) {
     list_remove(&(file_toclose->elem));
   }
 
+  lock_release(&filesys_lock);
+
   return;
 }
 
 void getfd(struct list *fd_list, struct file_descriptor **mrright, int fd)
 {
+
+  lock_acquire(&filesys_lock);
+
   struct list_elem *iter = NULL;
 
   if(list_empty(fd_list)){
@@ -483,6 +512,7 @@ void getfd(struct list *fd_list, struct file_descriptor **mrright, int fd)
       }
     }
 
+  lock_release(&filesys_lock);
 
   return;
 }
@@ -492,6 +522,8 @@ int sys_read(int fd, void *buffer, unsigned size) {
 
   int ret;
 
+  lock_acquire(&filesys_lock);
+
   if(fd == 0) { // stdin
     unsigned i;
     for(i = 0; i < size; ++i) {
@@ -500,6 +532,8 @@ int sys_read(int fd, void *buffer, unsigned size) {
       (*(int **)buffer)[i] = input_getc();
 
     }
+
+  lock_release(&filesys_lock);
     return size;
   }
   else {
@@ -515,6 +549,8 @@ int sys_read(int fd, void *buffer, unsigned size) {
     if(file_toread && file_toread->file) {
       return file_read(file_toread->file, buffer, size);
     }
+
+  lock_release(&filesys_lock);
     
     return -1; 
   }
@@ -522,11 +558,15 @@ int sys_read(int fd, void *buffer, unsigned size) {
 
 int sys_write(int fd, void *buffer, unsigned size) {
 
+  lock_acquire(&filesys_lock);
+
   int ret;
 
   if(fd == 1) {
     // output to screem
     putbuf(buffer, size);
+
+  lock_release(&filesys_lock);
     return size;
   }
   else {
@@ -542,6 +582,7 @@ int sys_write(int fd, void *buffer, unsigned size) {
     if(file_towrite && file_towrite->file) {
       return file_write(file_towrite->file, buffer, size);
     }
+  lock_release(&filesys_lock);
     
     return -1;
   }

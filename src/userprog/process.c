@@ -57,7 +57,9 @@ process_execute (const char *file_name)
 
   pcb->waiting = false;
   pcb->exited = false;
-  pcb->exitcode = -1; // undefined
+  pcb->exitcode = -1;
+
+  pcb->orphan = false;
 
   sema_init(&pcb->sema_initialization, 0);
   sema_init(&pcb->sema_wait, 0);
@@ -226,6 +228,26 @@ process_exit (void)
   }
 
 
+  /* add orphan to child list */
+
+
+  struct list *child_list = &cur->child_list;
+  struct list_elem *iter = NULL;
+
+  if(!list_empty(child_list)){
+
+    for (iter = list_front(child_list); iter != list_end(child_list); iter = list_next(iter)) {
+      struct process_control_block *pcb = list_entry(iter, struct process_control_block, elem);
+      if(pcb->exited == false) {
+        pcb->orphan = true;
+      }
+    }
+  }
+
+
+
+
+
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
@@ -242,6 +264,12 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
+
+  //check if thread_current is orphan
+  if (cur->pcb->orphan == true) {
+    palloc_free_page (& cur->pcb);
+  }
+
 }
 
 /* Sets up the CPU for running user code in the current
