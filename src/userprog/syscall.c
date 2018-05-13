@@ -313,9 +313,7 @@ syscall_handler (struct intr_frame *f)
 
   /* unhandled case */
   default:
-    printf("[ERROR] system call %d is unimplemented!\n", syscall_number);
-
-    // ensure that waiting (parent) process should wake up and terminate.
+    printf("system call %d is unimplemented!\n", syscall_number);
     sys_exit(-1);
     break;
   }
@@ -419,22 +417,6 @@ int sys_filesize(int fd) {
 
   return -1;
 
-
-  /*
-  struct file_descriptor* file_d;
-
-  lock_acquire (&filesys_lock);
-  file_d = find_file_desc(thread_current(), fd);
-
-  if(file_d == NULL) {
-    lock_release (&filesys_lock);
-    return -1;
-  }
-
-  int ret = file_length(file_d->file);
-  lock_release (&filesys_lock);
-  return ret;
-  */
 }
 
 void sys_seek(int fd, unsigned position) {
@@ -453,20 +435,6 @@ void sys_seek(int fd, unsigned position) {
 
   return;
 
-
-  /*
-  lock_acquire (&filesys_lock);
-  struct file_descriptor* file_d = find_file_desc(thread_current(), fd);
-
-  if(file_d && file_d->file) {
-    file_seek(file_d->file, position);
-  }
-  else
-    return; // TODO need sys_exit?
-
-  lock_release (&filesys_lock);
-
-  */
 }
 
 unsigned sys_tell(int fd) {
@@ -484,21 +452,6 @@ unsigned sys_tell(int fd) {
 
   return -1;
 
-  /*
-  lock_acquire (&filesys_lock);
-  struct file_descriptor* file_d = find_file_desc(thread_current(), fd);
-
-  unsigned ret;
-  if(file_d && file_d->file) {
-    ret = file_tell(file_d->file);
-  }
-  else
-    ret = -1; // TODO need sys_exit?
-
-  lock_release (&filesys_lock);
-  return ret;
-
-  */
 }
 
 void sys_close(int fd) {
@@ -549,10 +502,10 @@ int sys_read(int fd, void *buffer, unsigned size) {
   if(fd == 0) { // stdin
     unsigned i;
     for(i = 0; i < size; ++i) {
-      if(! put_user(buffer + i, input_getc()) ) {
+      //((uint8_t *)buffer)[i] = input_getc();
+     
+      (*(int **)buffer)[i] = input_getc();
 
-        sys_exit(-1); // segfault
-      }
     }
     return size;
   }
@@ -604,7 +557,7 @@ int sys_write(int fd, void *buffer, unsigned size) {
 
 }
 
-/****************** Helper Functions on Memory Access ********************/
+//Help Functions
 
 bool
 check_addr(const uint8_t *uaddr){
