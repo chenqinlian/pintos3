@@ -46,7 +46,7 @@ process_execute (const char *file_name)
   strlcpy (fn_copy, file_name, PGSIZE);
 
   /* Tokenize file_name to get process name */
-  token = strtok_r ((char *)file_name, " ", &save_ptr);
+  //token = strtok_r ((char *)file_name, " ", &save_ptr);
 
   //printf("cql_token:%s\n\n", token);
 

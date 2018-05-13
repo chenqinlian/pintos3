@@ -315,7 +315,9 @@ syscall_handler (struct intr_frame *f)
 
 
 void sys_exit(int status) {
-  printf("%s: exit(%d)\n", thread_current()->name, status);
+  char *save_ptr;
+  char *token = strtok_r ((char *)thread_current()->name, " ", &save_ptr);
+  printf("%s: exit(%d)\n", token, status);
 
   struct process_control_block *pcb = thread_current()->pcb;
   if(pcb != NULL) {
